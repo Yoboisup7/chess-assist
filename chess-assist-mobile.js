@@ -356,18 +356,43 @@
     return { x: file * 12.5 + 6.25, y: (8 - rank) * 12.5 + 6.25 };
   }
 
-  function buildArrowPoints(length) {
-    const n = 100;
-    const halfBody = n * 2.75 * 0.01 / 2;
-    const headH = n * 4.5 * 0.01;
-    const headHalf = n * 6.5 * 0.01 / 2;
-    const tail = n * 4.5 * 0.01;
-    const shaft = Math.max(0, length - headH - tail);
-    const l = tail, u = l + shaft, d = u, f = d + headH;
-    return [
-      [-halfBody, l], [-halfBody, u], [-headHalf, d],
-      [0, f], [headHalf, d], [halfBody, u], [halfBody, l]
+  function drawArrowSVG(b, move, color, opacity, cssClass, zIndex) {
+    const from = move.slice(0, 2), to = move.slice(2, 4);
+    const flipped = b.classList.contains('flipped');
+    const s = squareToPct(from, flipped);
+    const e = squareToPct(to, flipped);
+    const dx = e.x - s.x, dy = e.y - s.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.5) return;
+    const ux = dx / len, uy = dy / len;
+    const headLen = 4.5, headW = 3.5, bodyW = 1.4;
+    const tipX = e.x - ux * 1, tipY = e.y - uy * 1;
+    const baseX = s.x + ux * 1, baseY = s.y + uy * 1;
+    const neckX = tipX - ux * headLen, neckY = tipY - uy * headLen;
+    const nx = -uy, ny = ux;
+    const pts = [
+      [baseX + nx * bodyW, baseY + ny * bodyW],
+      [neckX + nx * bodyW, neckY + ny * bodyW],
+      [neckX + nx * headW, neckY + ny * headW],
+      [tipX, tipY],
+      [neckX - nx * headW, neckY - ny * headW],
+      [neckX - nx * bodyW, neckY - ny * bodyW],
+      [baseX - nx * bodyW, baseY - ny * bodyW],
     ];
+    let svg = b.querySelector('.' + cssClass);
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      svg.classList.add(cssClass);
+      svg.style.cssText = `position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:${zIndex};`;
+      if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+      b.appendChild(svg);
+    } else { svg.innerHTML = ''; }
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' '));
+    poly.setAttribute('fill', color);
+    poly.setAttribute('opacity', opacity);
+    svg.appendChild(poly);
   }
 
   function drawNativeArrow(move) {
@@ -380,31 +405,7 @@
         return;
       }
     } catch {}
-    const flipped = b.classList.contains('flipped');
-    const s = squareToPct(from, flipped);
-    const e = squareToPct(to, flipped);
-    const dx = e.x - s.x, dy = e.y - s.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-    const pts = buildArrowPoints(len);
-    const rotated = pts.map(([px, py]) => {
-      const rad = angle * Math.PI / 180;
-      return [s.x + px * Math.cos(rad) - py * Math.sin(rad), s.y + px * Math.sin(rad) + py * Math.cos(rad)];
-    });
-    let svg = b.querySelector('.ch-arrow-svg');
-    if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 100 100');
-      svg.classList.add('ch-arrow-svg');
-      svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1000;';
-      if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
-      b.appendChild(svg);
-    }
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', rotated.map(p => p.join(',')).join(' '));
-    poly.setAttribute('fill', '#96bc4b');
-    poly.setAttribute('opacity', '0.8');
-    svg.appendChild(poly);
+    drawArrowSVG(b, move, '#96bc4b', '0.8', 'ch-arrow-svg', 1000);
   }
 
   function clearBrilliantArrow() {
@@ -414,38 +415,7 @@
   function drawBrilliantArrow(move) {
     clearBrilliantArrow();
     const b = getBoard(); if (!b || !move) return;
-    const from = move.slice(0, 2), to = move.slice(2, 4);
-    try {
-      if (b.game?.markings?.addMany) {
-        b.game.markings.addMany([{ data: { from, to, color: '#1bada6', opacity: 0.85 }, type: 'arrow' }]);
-        return;
-      }
-    } catch {}
-    const flipped = b.classList.contains('flipped');
-    const s = squareToPct(from, flipped);
-    const e = squareToPct(to, flipped);
-    const dx = e.x - s.x, dy = e.y - s.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-    const pts = buildArrowPoints(len);
-    const rotated = pts.map(([px, py]) => {
-      const rad = angle * Math.PI / 180;
-      return [s.x + px * Math.cos(rad) - py * Math.sin(rad), s.y + px * Math.sin(rad) + py * Math.cos(rad)];
-    });
-    let svg = b.querySelector('.ch-brilliant-svg');
-    if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 100 100');
-      svg.classList.add('ch-brilliant-svg');
-      svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1001;';
-      if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
-      b.appendChild(svg);
-    }
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', rotated.map(p => p.join(',')).join(' '));
-    poly.setAttribute('fill', '#1bada6');
-    poly.setAttribute('opacity', '0.85');
-    svg.appendChild(poly);
+    drawArrowSVG(b, move, '#1bada6', '0.85', 'ch-brilliant-svg', 1001);
   }
 
   function clearOpponentArrow() {
@@ -455,38 +425,7 @@
   function drawOpponentArrow(move) {
     clearOpponentArrow();
     const b = getBoard(); if (!b || !move) return;
-    const from = move.slice(0, 2), to = move.slice(2, 4);
-    try {
-      if (b.game?.markings?.addMany) {
-        b.game.markings.addMany([{ data: { from, to, color: '#e04040', opacity: 0.8 }, type: 'arrow' }]);
-        return;
-      }
-    } catch {}
-    const flipped = b.classList.contains('flipped');
-    const s = squareToPct(from, flipped);
-    const e = squareToPct(to, flipped);
-    const dx = e.x - s.x, dy = e.y - s.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-    const pts = buildArrowPoints(len);
-    const rotated = pts.map(([px, py]) => {
-      const rad = angle * Math.PI / 180;
-      return [s.x + px * Math.cos(rad) - py * Math.sin(rad), s.y + px * Math.sin(rad) + py * Math.cos(rad)];
-    });
-    let svg = b.querySelector('.ch-opponent-svg');
-    if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 100 100');
-      svg.classList.add('ch-opponent-svg');
-      svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1002;';
-      if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
-      b.appendChild(svg);
-    }
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', rotated.map(p => p.join(',')).join(' '));
-    poly.setAttribute('fill', '#e04040');
-    poly.setAttribute('opacity', '0.8');
-    svg.appendChild(poly);
+    drawArrowSVG(b, move, '#e04040', '0.8', 'ch-opponent-svg', 1002);
   }
 
   let processing = false, lastFen = '', lastMovedFen = '';
