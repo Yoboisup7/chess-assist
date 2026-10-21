@@ -74,7 +74,8 @@
     }
     const bottom = document.querySelector('.clock-bottom');
     if (bottom && bottom.classList.contains('clock-player-turn')) return true;
-    if (!document.querySelector('.clock-bottom') && !document.querySelector('.clock-top')) return true;
+    const top = document.querySelector('.clock-top');
+    if (top && top.classList.contains('clock-player-turn')) return false;
     return false;
   }
 
@@ -330,13 +331,17 @@
   }
 
   function clearArrows() {
+    drawing = true;
     const b = getBoard();
     try { if (b?.game?.markings?.removeAll) b.game.markings.removeAll(); } catch {}
     document.querySelectorAll('.ch-arrow-svg').forEach(e => e.remove());
+    drawing = false;
   }
 
   function clearShading() {
+    drawing = true;
     document.querySelectorAll('.ch-shade-overlay').forEach(e => e.remove());
+    drawing = false;
   }
 
   function drawShading(move) {
@@ -367,13 +372,14 @@
   }
 
   function drawArrowSVG(b, move, color, opacity, cssClass, zIndex) {
+    drawing = true;
     const from = move.slice(0, 2), to = move.slice(2, 4);
     const flipped = b.classList.contains('flipped');
     const s = squareToPct(from, flipped);
     const e = squareToPct(to, flipped);
     const dx = e.x - s.x, dy = e.y - s.y;
     const len = Math.hypot(dx, dy);
-    if (len < 0.5) return;
+    if (len < 0.5) { drawing = false; return; }
     const ux = dx / len, uy = dy / len;
     const headLen = 4.5, headW = 3.5, bodyW = 1.4;
     const tipX = e.x - ux * 1, tipY = e.y - uy * 1;
@@ -403,6 +409,7 @@
     poly.setAttribute('fill', color);
     poly.setAttribute('opacity', opacity);
     svg.appendChild(poly);
+    drawing = false;
   }
 
   function drawNativeArrow(move) {
@@ -411,15 +418,19 @@
     const from = move.slice(0, 2), to = move.slice(2, 4);
     try {
       if (b.game?.markings?.addMany) {
+        drawing = true;
         b.game.markings.addMany([{ data: { from, to, color: '#96bc4b', opacity: 0.8 }, type: 'arrow' }]);
+        drawing = false;
         return;
       }
-    } catch {}
+    } catch { drawing = false; }
     drawArrowSVG(b, move, '#96bc4b', '0.8', 'ch-arrow-svg', 1000);
   }
 
   function clearOpponentArrow() {
+    drawing = true;
     document.querySelectorAll('.ch-opponent-svg').forEach(e => e.remove());
+    drawing = false;
   }
 
   function drawOpponentArrow(move) {
@@ -428,7 +439,7 @@
     drawArrowSVG(b, move, '#e04040', '0.8', 'ch-opponent-svg', 1002);
   }
 
-  let processing = false, lastFen = '', lastMovedFen = '';
+  let processing = false, lastFen = '', lastMovedFen = '', drawing = false;
   async function tick() {
     if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
     if (!inActiveGame()) return;
@@ -485,7 +496,7 @@
     } catch {} finally { processing = false; thinkingEl.classList.remove('active'); }
   }
 
-  const obs = new MutationObserver(() => { if (window.chessHelper.autoPlay || window.chessHelper.showArrow || window.chessHelper.hiddenArrow || window.chessHelper.showOpponent) tick(); });
+  const obs = new MutationObserver(() => { if (!drawing && (window.chessHelper.autoPlay || window.chessHelper.showArrow || window.chessHelper.hiddenArrow || window.chessHelper.showOpponent)) tick(); });
   function watch() {
     const b = getBoard();
     if (b) obs.observe(b, { childList:true, subtree:true, attributes:true });
