@@ -1,6 +1,6 @@
 # Chess Assist
 
-Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versions included.
+Stockfish 19 WASM chess engine overlay for chess.com. Desktop and mobile versions included.
 
 ## Desktop (chess-assist.js)
 
