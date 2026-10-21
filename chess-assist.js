@@ -52,6 +52,16 @@
   function getBoard() { return document.querySelector('wc-chess-board') || document.querySelector('chess-board') || document.querySelector('.board'); }
   function getMyColor() { const b = getBoard(); return b?.classList.contains('flipped') ? 'b' : 'w'; }
 
+  function inActiveGame() {
+    const b = getBoard();
+    if (b?.game?.getOptions?.()) return true;
+    if (b?.game?.getFEN) {
+      const clocks = document.querySelectorAll('.clock-component, .clock-bottom, .clock-top, [class*="clock-"]');
+      if (clocks.length >= 2) return true;
+    }
+    return false;
+  }
+
   function isMyTurn() {
     const b = getBoard();
     if (b?.game?.getFEN) {
@@ -418,6 +428,7 @@
   let processing = false, lastFen = '', lastMovedFen = '';
   async function tick() {
     if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
+    if (!inActiveGame()) return;
     const myTurn = isMyTurn();
     if (!myTurn) {
       lastFen = '';
