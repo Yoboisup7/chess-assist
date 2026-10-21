@@ -48,7 +48,7 @@
   `;
   document.head.appendChild(style);
 
-  window.chessHelper = { autoPlay: false, showArrow: false, hiddenArrow: false, showOpponent: false };
+  window.chessHelper = { autoPlay: false, showArrow: false, hiddenArrow: false, showOpponent: false, showEval: false };
 
   const pieceToFen = { wp:'P',wn:'N',wb:'B',wr:'R',wq:'Q',wk:'K', bp:'p',bn:'n',bb:'b',br:'r',bq:'q',bk:'k' };
 
@@ -583,11 +583,16 @@
       </div>
       <div class="ch-tooltip" id="tip-opponent">Shows a red arrow for the opponent's best reply to the current position. Helps you anticipate what they'll play next.</div>
     </div>
+    <div>
+      <div class="ch-row"><span class="ch-label">Win %</span><span class="ch-info" data-tip="eval">i</span><label class="ch-switch"><input type="checkbox" id="ch-eval"><span class="ch-slider"></span></label></div>
+      <div class="ch-tooltip" id="tip-eval">Shows a live win probability bar next to the panel. Updates every position using Stockfish's centipawn evaluation.</div>
+    </div>
     <button class="ch-btn ch-btn-primary" id="ch-analyze">Analyze once</button>
   `;
   const wrap = document.createElement('div'); wrap.id = 'chess-helper-wrap';
   const evalBar = document.createElement('div'); evalBar.id = 'ch-eval-bar';
   evalBar.innerHTML = `<div id="ch-eval-pct-top" class="ch-eval-pct">50%</div><div id="ch-eval-white"></div><div id="ch-eval-pct-bot" class="ch-eval-pct">50%</div>`;
+  evalBar.style.display = 'none';
   wrap.append(panel, evalBar);
   root.append(bubble, wrap); document.body.appendChild(root);
 
@@ -698,6 +703,10 @@
     window.chessHelper.showOpponent = e.target.checked;
     if (!e.target.checked) clearOpponentArrow();
     else { lastFen = ''; tick(); }
+  };
+  panel.querySelector('#ch-eval').onchange = (e) => {
+    window.chessHelper.showEval = e.target.checked;
+    evalBar.style.display = e.target.checked ? '' : 'none';
   };
 
   console.log('chess helper (mobile) loaded');
