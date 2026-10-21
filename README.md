@@ -4,7 +4,7 @@ Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versi
 
 ## Desktop (chess-assist.js)
 
-**Features:** Stockfish 19 WASM engine, adjustable depth (1–24, default 16), best-move green arrow, hidden arrows (subtle shading), auto-play with anti-repetition, move delay (random human-like timing), opponent's best move (red arrow, works on both turns), auto queen promotion, customizable keybinds for all toggles, info tooltips, draggable UI panel + icon, thinking indicator, hide all mode, MultiPV 3.
+**Features:** Stockfish 19 WASM engine, adjustable depth (1–24, default 16), best-move green arrow, hidden arrows (subtle shading), auto-play with anti-repetition, move delay (random human-like timing), opponent's best move (red arrow, works on both turns), live win% eval bar, auto queen promotion, customizable keybinds for all toggles, info tooltips, draggable UI panel + icon, thinking indicator, hide all mode, MultiPV 3.
 
 ### Usage
 
@@ -22,6 +22,7 @@ Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versi
 - **Move delay** — toggle on to add a random delay before auto-play moves (min/max sliders, 0–15s). Makes it look like a human thinking
 - **Opponent's best** — red arrow (#e04040) showing the opponent's best reply to the current position. Shows on both your turn and the opponent's turn
 - **Analyze once** — one-shot analysis without enabling continuous mode. Respects hidden arrows mode
+- **Win% eval bar** — vertical bar next to the panel showing live win probability. White fill = white's advantage, updates every position change. Uses a logistic model (centipawn → win%) from Stockfish evaluation
 - **Hide all** — hides the entire UI, arrows, shading, and pauses auto-play. Press keybind again to restore everything
 - **Keybinds** — click the key badge next to any toggle to assign a hotkey. Supports single keys, modifier combos (Ctrl+G), and modifier-only binds (just Ctrl). Live preview while recording, click away or Escape to cancel. No duplicates allowed
 - **Info tooltips** — click the (i) icon next to any toggle to see what it does
@@ -29,7 +30,7 @@ Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versi
 
 ## Mobile / iOS Safari (chess-assist-mobile.js)
 
-Same features as desktop except no keybind system and no hide-all toggle (mobile doesn't use keyboards). Touch-optimized with larger targets (48px bubble, 28px switches, 22px slider thumbs), close button on panel, slightly longer timeouts for slower devices.
+Same features as desktop (including live win% eval bar) except no keybind system and no hide-all toggle (mobile doesn't use keyboards). Touch-optimized with larger targets (48px bubble, 28px switches, 22px slider thumbs), close button on panel, slightly longer timeouts for slower devices.
 
 ### Usage — Bookmarklet
 

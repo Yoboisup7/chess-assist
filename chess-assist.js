@@ -10,8 +10,14 @@
     #chess-helper-bubble { position:fixed; width:52px; height:52px; background:var(--ch-bg); backdrop-filter:blur(20px); border:1px solid var(--ch-border); border-radius:50%; box-shadow:0 10px 40px -10px #0008; display:flex; align-items:center; justify-content:center; cursor:grab; color:#fff; pointer-events:auto; z-index:100000; user-select:none; transition:transform .2s; }
     #chess-helper-bubble:hover { transform:scale(1.1); }
     #chess-helper-bubble img { width:100%; height:100%; pointer-events:none; }
-    #chess-helper-panel { position:fixed; width:280px; background:rgba(18,18,20,0.85); backdrop-filter:blur(24px); border:1px solid var(--ch-border); border-radius:var(--ch-radius); padding:20px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 60px #0009; pointer-events:auto; opacity:0; transform:scale(0.9); transition:opacity .25s, transform .3s; pointer-events:none; }
-    #chess-helper-panel.visible { opacity:1; transform:scale(1); pointer-events:auto; }
+    #chess-helper-wrap { position:fixed; display:flex; align-items:stretch; gap:8px; opacity:0; transform:scale(0.9); transition:opacity .25s, transform .3s; pointer-events:none; }
+    #chess-helper-wrap.visible { opacity:1; transform:scale(1); pointer-events:auto; }
+    #chess-helper-panel { width:280px; background:rgba(18,18,20,0.85); backdrop-filter:blur(24px); border:1px solid var(--ch-border); border-radius:var(--ch-radius); padding:20px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 60px #0009; pointer-events:auto; }
+    #ch-eval-bar { width:28px; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--ch-border); box-shadow:0 10px 40px -10px #0008; position:relative; pointer-events:auto; min-height:200px; }
+    #ch-eval-white { position:absolute; bottom:0; left:0; right:0; background:#fff; transition:height .6s ease; height:50%; }
+    #ch-eval-pct { position:absolute; width:100%; text-align:center; font-size:10px; font-weight:700; font-family:var(--ch-font); z-index:1; left:0; }
+    #ch-eval-pct-top { top:6px; color:#fff; }
+    #ch-eval-pct-bot { bottom:6px; color:#000; }
     .ch-header { display:flex; justify-content:space-between; align-items:center; cursor:grab; user-select:none; }
     .ch-title { font-size:16px; font-weight:700; color:#fff; }
     .ch-row { display:flex; justify-content:space-between; align-items:center; gap:6px; }
@@ -222,9 +228,9 @@
     if (!candidates.length) return null;
     for (const c of candidates) {
       const count = played.filter(m => m === c.move).length;
-      if (count < REPEAT_THRESHOLD) return c.move;
+      if (count < REPEAT_THRESHOLD) return c;
     }
-    return candidates[0].move;
+    return candidates[0];
   }
 
   function flipFEN(fen) {
@@ -439,6 +445,23 @@
     drawArrowSVG(b, move, '#e04040', '0.8', 'ch-opponent-svg', 1002);
   }
 
+  function cpToWinPct(cp) {
+    if (cp === null || cp === undefined) return 50;
+    return Math.round(100 / (1 + Math.exp(-0.00368208 * cp)));
+  }
+  function updateEval(cp, myColor) {
+    const bar = document.getElementById('ch-eval-white');
+    const top = document.getElementById('ch-eval-pct-top');
+    const bot = document.getElementById('ch-eval-pct-bot');
+    if (!bar || !top || !bot) return;
+    let whitePct = cpToWinPct(cp);
+    const myPct = myColor === 'w' ? whitePct : 100 - whitePct;
+    const oppPct = 100 - myPct;
+    bar.style.height = whitePct + '%';
+    top.textContent = (100 - whitePct) + '%';
+    bot.textContent = whitePct + '%';
+  }
+
   let processing = false, lastFen = '', lastMovedFen = '', drawing = false, lastOppFen = '', lastOppMove = null;
   async function tick() {
     if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
@@ -455,6 +478,9 @@
         try {
           const candidates = await queryLocal(fen, ENGINE_DEPTH);
           const om = candidates.length ? candidates[0].move : null;
+          if (candidates.length && candidates[0].cp !== null) {
+            updateEval(-candidates[0].cp, getMyColor());
+          }
           lastOppFen = fen;
           lastOppMove = om;
           if (om) drawOpponentArrow(om);
@@ -471,9 +497,11 @@
     processing = true;
     thinkingEl.classList.add('active');
     try {
-      const mv = await fetchRemote(fen);
+      const result = await fetchRemote(fen);
       thinkingEl.classList.remove('active');
-      if (!mv) return;
+      if (!result) return;
+      const mv = result.move;
+      updateEval(result.cp, getMyColor());
       lastFen = fen;
       if (window.chessHelper.hiddenArrow) { drawShading(mv); clearArrows(); }
       else if (window.chessHelper.showArrow) { drawNativeArrow(mv); clearShading(); }
@@ -551,7 +579,11 @@
       <div class="ch-tooltip" id="tip-hide">Hides everything — the icon, panel, arrows, and shading. Press your keybind again to bring it all back.</div>
     </div>
   `;
-  root.append(bubble, panel); document.body.appendChild(root);
+  const wrap = document.createElement('div'); wrap.id = 'chess-helper-wrap';
+  const evalBar = document.createElement('div'); evalBar.id = 'ch-eval-bar';
+  evalBar.innerHTML = `<div id="ch-eval-pct-top" class="ch-eval-pct">50%</div><div id="ch-eval-white"></div><div id="ch-eval-pct-bot" class="ch-eval-pct">50%</div>`;
+  wrap.append(panel, evalBar);
+  root.append(bubble, wrap); document.body.appendChild(root);
 
   panel.querySelectorAll('.ch-info[data-tip]').forEach(el => {
     el.onclick = () => {
@@ -580,7 +612,7 @@
   document.onmouseup = document.ontouchend = () => {
     if (!dragging) return;
     dragging = false;
-    if (!dragMoved) panel.classList.toggle('visible');
+    if (!dragMoved) wrap.classList.toggle('visible');
   };
 
   let panelX = -1, panelY = -1, panelDragging = false, panelDragMoved = false, panelSX = 0, panelSY = 0;
@@ -595,7 +627,7 @@
     }
     panelX = Math.max(0, Math.min(panelX, innerWidth - 280));
     panelY = Math.max(0, Math.min(panelY, innerHeight - 50));
-    panel.style.left = panelX + 'px'; panel.style.top = panelY + 'px';
+    wrap.style.left = panelX + 'px'; wrap.style.top = panelY + 'px';
   }
 
   const header = panel.querySelector('.ch-header');
@@ -679,12 +711,13 @@
       setTimeout(() => btn.textContent = 'Analyze once', 2500);
       return;
     }
-    const mv = await fetchRemote(fen);
+    const result = await fetchRemote(fen);
     thinkingEl.classList.remove('active');
-    if (mv) {
-      if (window.chessHelper.hiddenArrow) { drawShading(mv); clearArrows(); }
-      else { drawNativeArrow(mv); }
-      btn.textContent = `Best: ${mv.toUpperCase()}`;
+    if (result) {
+      updateEval(result.cp, getMyColor());
+      if (window.chessHelper.hiddenArrow) { drawShading(result.move); clearArrows(); }
+      else { drawNativeArrow(result.move); }
+      btn.textContent = `Best: ${result.move.toUpperCase()}`;
     }
     else btn.textContent = 'Error';
     setTimeout(() => btn.textContent = 'Analyze once', 2500);

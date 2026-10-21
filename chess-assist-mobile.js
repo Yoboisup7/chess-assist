@@ -10,8 +10,14 @@
     #chess-helper-bubble { position:fixed; width:48px; height:48px; background:var(--ch-bg); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); border:1px solid var(--ch-border); border-radius:50%; box-shadow:0 8px 30px -8px #0008; display:flex; align-items:center; justify-content:center; cursor:grab; color:#fff; pointer-events:auto; z-index:100000; user-select:none; touch-action:none; transition:transform .15s; }
     #chess-helper-bubble:active { transform:scale(1.12); }
     #chess-helper-bubble img { width:100%; height:100%; pointer-events:none; -webkit-user-drag:none; }
-    #chess-helper-panel { position:fixed; width:min(270px,85vw); max-height:80vh; overflow-y:auto; background:rgba(18,18,20,0.9); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px); border:1px solid var(--ch-border); border-radius:var(--ch-radius); padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 50px #0009; pointer-events:auto; opacity:0; transform:scale(0.92); transition:opacity .2s, transform .25s; pointer-events:none; -webkit-overflow-scrolling:touch; }
-    #chess-helper-panel.visible { opacity:1; transform:scale(1); pointer-events:auto; }
+    #chess-helper-wrap { position:fixed; display:flex; align-items:stretch; gap:8px; opacity:0; transform:scale(0.92); transition:opacity .2s, transform .25s; pointer-events:none; }
+    #chess-helper-wrap.visible { opacity:1; transform:scale(1); pointer-events:auto; }
+    #chess-helper-panel { width:min(270px,85vw); max-height:80vh; overflow-y:auto; background:rgba(18,18,20,0.9); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px); border:1px solid var(--ch-border); border-radius:var(--ch-radius); padding:16px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 50px #0009; pointer-events:auto; -webkit-overflow-scrolling:touch; }
+    #ch-eval-bar { width:24px; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--ch-border); box-shadow:0 10px 40px -10px #0008; position:relative; pointer-events:auto; min-height:180px; }
+    #ch-eval-white { position:absolute; bottom:0; left:0; right:0; background:#fff; transition:height .6s ease; height:50%; }
+    .ch-eval-pct { position:absolute; width:100%; text-align:center; font-size:9px; font-weight:700; font-family:var(--ch-font); z-index:1; left:0; }
+    #ch-eval-pct-top { top:5px; color:#fff; }
+    #ch-eval-pct-bot { bottom:5px; color:#000; }
     .ch-header { display:flex; justify-content:space-between; align-items:center; touch-action:none; user-select:none; min-height:28px; }
     .ch-title { font-size:15px; font-weight:700; color:#fff; }
     .ch-close { width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.08); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
@@ -216,9 +222,9 @@
     if (!candidates.length) return null;
     for (const c of candidates) {
       const count = played.filter(m => m === c.move).length;
-      if (count < REPEAT_THRESHOLD) return c.move;
+      if (count < REPEAT_THRESHOLD) return c;
     }
-    return candidates[0].move;
+    return candidates[0];
   }
 
   function flipFEN(fen) {
@@ -431,6 +437,21 @@
     drawArrowSVG(b, move, '#e04040', '0.8', 'ch-opponent-svg', 1002);
   }
 
+  function cpToWinPct(cp) {
+    if (cp === null || cp === undefined) return 50;
+    return Math.round(100 / (1 + Math.exp(-0.00368208 * cp)));
+  }
+  function updateEval(cp, myColor) {
+    const bar = document.getElementById('ch-eval-white');
+    const top = document.getElementById('ch-eval-pct-top');
+    const bot = document.getElementById('ch-eval-pct-bot');
+    if (!bar || !top || !bot) return;
+    let whitePct = cpToWinPct(cp);
+    bar.style.height = whitePct + '%';
+    top.textContent = (100 - whitePct) + '%';
+    bot.textContent = whitePct + '%';
+  }
+
   let processing = false, lastFen = '', lastMovedFen = '', drawing = false, lastOppFen = '', lastOppMove = null;
   async function tick() {
     if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
@@ -447,6 +468,9 @@
         try {
           const candidates = await queryLocal(fen, ENGINE_DEPTH);
           const om = candidates.length ? candidates[0].move : null;
+          if (candidates.length && candidates[0].cp !== null) {
+            updateEval(-candidates[0].cp, getMyColor());
+          }
           lastOppFen = fen;
           lastOppMove = om;
           if (om) drawOpponentArrow(om);
@@ -463,9 +487,11 @@
     processing = true;
     thinkingEl.classList.add('active');
     try {
-      const mv = await fetchRemote(fen);
+      const result = await fetchRemote(fen);
       thinkingEl.classList.remove('active');
-      if (!mv) return;
+      if (!result) return;
+      const mv = result.move;
+      updateEval(result.cp, getMyColor());
       lastFen = fen;
       if (window.chessHelper.hiddenArrow) { drawShading(mv); clearArrows(); }
       else if (window.chessHelper.showArrow) { drawNativeArrow(mv); clearShading(); }
@@ -559,7 +585,11 @@
     </div>
     <button class="ch-btn ch-btn-primary" id="ch-analyze">Analyze once</button>
   `;
-  root.append(bubble, panel); document.body.appendChild(root);
+  const wrap = document.createElement('div'); wrap.id = 'chess-helper-wrap';
+  const evalBar = document.createElement('div'); evalBar.id = 'ch-eval-bar';
+  evalBar.innerHTML = `<div id="ch-eval-pct-top" class="ch-eval-pct">50%</div><div id="ch-eval-white"></div><div id="ch-eval-pct-bot" class="ch-eval-pct">50%</div>`;
+  wrap.append(panel, evalBar);
+  root.append(bubble, wrap); document.body.appendChild(root);
 
   const thinkingEl = panel.querySelector('#ch-thinking');
 
@@ -574,7 +604,7 @@
 
   function bStart(cx, cy) { bDrag = true; bMoved = false; bsx = cx - bx; bsy = cy - by; }
   function bMove(cx, cy) { if (!bDrag) return; bMoved = true; bx = Math.max(0, Math.min(cx - bsx, innerWidth - 48)); by = Math.max(0, Math.min(cy - bsy, innerHeight - 48)); setBubblePos(); }
-  function bEnd() { if (!bDrag) return; bDrag = false; if (!bMoved) { panel.classList.toggle('visible'); positionPanel(); } }
+  function bEnd() { if (!bDrag) return; bDrag = false; if (!bMoved) { wrap.classList.toggle('visible'); positionPanel(); } }
 
   bubble.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.touches[0]; bStart(t.clientX, t.clientY); }, { passive: false });
   document.addEventListener('touchmove', (e) => { if (bDrag) { e.preventDefault(); const t = e.touches[0]; bMove(t.clientX, t.clientY); } }, { passive: false });
@@ -593,7 +623,7 @@
     }
     ppx = Math.max(0, Math.min(ppx, innerWidth - 100));
     ppy = Math.max(0, Math.min(ppy, innerHeight - 50));
-    panel.style.left = ppx + 'px'; panel.style.top = ppy + 'px';
+    wrap.style.left = ppx + 'px'; wrap.style.top = ppy + 'px';
   }
 
   const header = panel.querySelector('.ch-header');
@@ -604,7 +634,7 @@
   document.addEventListener('mousemove', (e) => { if (pDrag) { ppx = e.clientX - psx; ppy = e.clientY - psy; positionPanel(); } });
   document.addEventListener('mouseup', () => { pDrag = false; });
 
-  panel.querySelector('#ch-close').onclick = () => panel.classList.remove('visible');
+  panel.querySelector('#ch-close').onclick = () => wrap.classList.remove('visible');
 
   panel.querySelector('#ch-depth').oninput = (e) => {
     ENGINE_DEPTH = parseInt(e.target.value);
@@ -653,12 +683,13 @@
       setTimeout(() => btn.textContent = 'Analyze once', 2500);
       return;
     }
-    const mv = await fetchRemote(fen);
+    const result = await fetchRemote(fen);
     thinkingEl.classList.remove('active');
-    if (mv) {
-      if (window.chessHelper.hiddenArrow) { drawShading(mv); clearArrows(); }
-      else { drawNativeArrow(mv); }
-      btn.textContent = `Best: ${mv.toUpperCase()}`;
+    if (result) {
+      updateEval(result.cp, getMyColor());
+      if (window.chessHelper.hiddenArrow) { drawShading(result.move); clearArrows(); }
+      else { drawNativeArrow(result.move); }
+      btn.textContent = `Best: ${result.move.toUpperCase()}`;
     }
     else btn.textContent = 'Error';
     setTimeout(() => btn.textContent = 'Analyze once', 2500);
