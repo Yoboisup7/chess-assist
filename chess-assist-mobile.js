@@ -51,10 +51,13 @@
 
   function inActiveGame() {
     const b = getBoard();
-    if (b?.game?.getOptions?.()) return true;
-    if (b?.game?.getFEN) {
-      const clocks = document.querySelectorAll('.clock-component, .clock-bottom, .clock-top, [class*="clock-"]');
-      if (clocks.length >= 2) return true;
+    if (!b) return false;
+    if (document.querySelector('.move-list-wrapper, .vertical-move-list, wc-move-list, [class*="move-list"]')) return true;
+    const clocks = document.querySelectorAll('.clock-component, .clock-bottom, .clock-top');
+    const running = [...clocks].some(c => c.classList.contains('clock-player-turn'));
+    if (running) return true;
+    if (b.game?.getTurn && b.game?.getPlayingAs) {
+      try { const fen = b.game.getFEN(); if (fen && !fen.startsWith('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w')) return true; } catch {}
     }
     return false;
   }
@@ -622,8 +625,10 @@
     const btn = panel.querySelector('#ch-analyze');
     btn.textContent = 'Analyzing...';
     thinkingEl.classList.add('active');
-    const fen = getFEN();
-    if (!fen) { btn.textContent = 'No board found'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 2000); return; }
+    if (!inActiveGame()) { btn.textContent = 'No Game'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 1500); return; }
+    let fen = getFEN();
+    if (!fen) { btn.textContent = 'No Game'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 1500); return; }
+    if (!isMyTurn()) fen = flipFEN(fen);
     const mv = await fetchRemote(fen);
     thinkingEl.classList.remove('active');
     if (mv) {
