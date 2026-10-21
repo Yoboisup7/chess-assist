@@ -45,7 +45,7 @@
   `;
   document.head.appendChild(style);
 
-  window.chessHelper = { autoPlay: false, showArrow: false, hiddenArrow: false, showBrilliant: false, showOpponent: false };
+  window.chessHelper = { autoPlay: false, showArrow: false, hiddenArrow: false, showOpponent: false };
 
   const pieceToFen = { 'wp':'P','wn':'N','wb':'B','wr':'R','wq':'Q','wk':'K', 'bp':'p','bn':'n','bb':'b','br':'r','bq':'q','bk':'k' };
 
@@ -227,17 +227,6 @@
     return candidates[0].move;
   }
 
-  async function queryBrilliant(fen) {
-    if (!sfReady) await initEngine();
-    const candidates = await queryLocal(fen, ENGINE_DEPTH);
-    if (candidates.length < 2) return null;
-    const best = candidates[0], second = candidates[1];
-    if (best.cp === null || second.cp === null) return null;
-    const gap = best.cp - second.cp;
-    if (gap >= 150) return best.move;
-    return null;
-  }
-
   function recordMove(fen, move) {
     const key = boardKey(fen);
     const played = positionMoves.get(key) || [];
@@ -416,16 +405,6 @@
     drawArrowSVG(b, move, '#96bc4b', '0.8', 'ch-arrow-svg', 1000);
   }
 
-  function clearBrilliantArrow() {
-    document.querySelectorAll('.ch-brilliant-svg').forEach(e => e.remove());
-  }
-
-  function drawBrilliantArrow(move) {
-    clearBrilliantArrow();
-    const b = getBoard(); if (!b || !move) return;
-    drawArrowSVG(b, move, '#1bada6', '0.85', 'ch-brilliant-svg', 1001);
-  }
-
   function clearOpponentArrow() {
     document.querySelectorAll('.ch-opponent-svg').forEach(e => e.remove());
   }
@@ -438,13 +417,21 @@
 
   let processing = false, lastFen = '', lastMovedFen = '';
   async function tick() {
-    if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showBrilliant && !window.chessHelper.showOpponent) || processing) return;
-    if (!isMyTurn()) {
+    if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
+    const myTurn = isMyTurn();
+    if (!myTurn) {
       lastFen = '';
       clearArrows();
       clearShading();
-      clearBrilliantArrow();
-      clearOpponentArrow();
+      const fen = getFEN();
+      if (fen && window.chessHelper.showOpponent) {
+        processing = true;
+        try {
+          const om = await queryOpponentBest(fen);
+          if (om) drawOpponentArrow(om);
+          else clearOpponentArrow();
+        } catch {} finally { processing = false; }
+      } else clearOpponentArrow();
       return;
     }
     const fen = getFEN(); if (!fen) return;
@@ -460,11 +447,6 @@
       lastFen = fen;
       if (window.chessHelper.hiddenArrow) { drawShading(mv); clearArrows(); }
       else if (window.chessHelper.showArrow) { drawNativeArrow(mv); clearShading(); }
-      if (window.chessHelper.showBrilliant) {
-        const bm = await queryBrilliant(fen);
-        if (bm) drawBrilliantArrow(bm);
-        else clearBrilliantArrow();
-      } else clearBrilliantArrow();
       if (window.chessHelper.showOpponent) {
         const om = await queryOpponentBest(fen);
         if (om) drawOpponentArrow(om);
@@ -488,7 +470,7 @@
     } catch {} finally { processing = false; thinkingEl.classList.remove('active'); }
   }
 
-  const obs = new MutationObserver(() => { if (window.chessHelper.autoPlay || window.chessHelper.showArrow || window.chessHelper.hiddenArrow || window.chessHelper.showBrilliant || window.chessHelper.showOpponent) tick(); });
+  const obs = new MutationObserver(() => { if (window.chessHelper.autoPlay || window.chessHelper.showArrow || window.chessHelper.hiddenArrow || window.chessHelper.showOpponent) tick(); });
   function watch() {
     const b = getBoard();
     if (b) obs.observe(b, { childList:true, subtree:true, attributes:true });
@@ -528,10 +510,6 @@
         <div class="ch-depth-row" style="margin-top:6px"><span class="ch-depth-label">Min</span><input type="range" class="ch-range" id="ch-delay-min" min="0" max="15" value="1" step="0.5"><span class="ch-depth-val" id="ch-delay-min-val">1s</span></div>
         <div class="ch-depth-row" style="margin-top:4px"><span class="ch-depth-label">Max</span><input type="range" class="ch-range" id="ch-delay-max" min="0" max="15" value="5" step="0.5"><span class="ch-depth-val" id="ch-delay-max-val">5s</span></div>
       </div>
-    </div>
-    <div>
-      <div class="ch-row"><span class="ch-label">Brilliant move</span><span class="ch-info" data-tip="brilliant">i</span><label class="ch-switch"><input type="checkbox" id="ch-brilliant"><span class="ch-slider"></span></label></div>
-      <div class="ch-tooltip" id="tip-brilliant">Shows a cyan arrow for moves that are significantly stronger than any alternative (150+ centipawn gap). These are the kind of moves that get the brilliant badge in game analysis.</div>
     </div>
     <div>
       <div class="ch-row"><span class="ch-label">Opponent's best</span><span class="ch-info" data-tip="opponent">i</span><label class="ch-switch"><input type="checkbox" id="ch-opponent"><span class="ch-slider"></span></label></div>
@@ -670,11 +648,6 @@
     else btn.textContent = 'Error';
     setTimeout(() => btn.textContent = 'Analyze once', 2500);
   };
-  panel.querySelector('#ch-brilliant').onchange = (e) => {
-    window.chessHelper.showBrilliant = e.target.checked;
-    if (!e.target.checked) clearBrilliantArrow();
-    else { lastFen = ''; tick(); }
-  };
   panel.querySelector('#ch-opponent').onchange = (e) => {
     window.chessHelper.showOpponent = e.target.checked;
     if (!e.target.checked) clearOpponentArrow();
@@ -687,7 +660,7 @@
     uiHidden = !uiHidden;
     root.style.display = uiHidden ? 'none' : '';
     if (uiHidden) {
-      clearArrows(); clearShading(); clearBrilliantArrow(); clearOpponentArrow();
+      clearArrows(); clearShading(); clearOpponentArrow();
       autoPlayBeforeHide = window.chessHelper.autoPlay;
       if (autoPlayBeforeHide) {
         window.chessHelper.autoPlay = false;

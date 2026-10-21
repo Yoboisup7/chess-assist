@@ -4,7 +4,7 @@ Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versi
 
 ## Desktop (chess-assist.js)
 
-**Features:** Stockfish 19 WASM engine, adjustable depth (1–24, default 16), best-move green arrow, hidden arrows (subtle shading), auto-play with anti-repetition, move delay (random human-like timing), brilliant move detector (cyan arrow), opponent's best move (red arrow), auto queen promotion, customizable keybinds for all toggles, info tooltips, draggable UI panel + icon, thinking indicator, hide all mode, MultiPV 3.
+**Features:** Stockfish 19 WASM engine, adjustable depth (1–24, default 16), best-move green arrow, hidden arrows (subtle shading), auto-play with anti-repetition, move delay (random human-like timing), opponent's best move (red arrow, works on both turns), auto queen promotion, customizable keybinds for all toggles, info tooltips, draggable UI panel + icon, thinking indicator, hide all mode, MultiPV 3.
 
 ### Usage
 
@@ -20,8 +20,7 @@ Stockfish 19 WASM chess analysis overlay for chess.com. Desktop and mobile versi
 - **Hidden arrows** — subtle square shading instead of visible arrow (opacity 0.07). Overrides green arrow when both are on
 - **Auto-play** — plays the best move automatically each turn with anti-repetition to avoid draw loops
 - **Move delay** — toggle on to add a random delay before auto-play moves (min/max sliders, 0–15s). Makes it look like a human thinking
-- **Brilliant move** — cyan arrow (#1bada6) for moves where the best option is 150+ centipawns better than the second best. Same color as chess.com's brilliant badge
-- **Opponent's best** — red arrow (#e04040) showing the opponent's best reply to the current position. Updates live each turn
+- **Opponent's best** — red arrow (#e04040) showing the opponent's best reply to the current position. Shows on both your turn and the opponent's turn
 - **Analyze once** — one-shot analysis without enabling continuous mode. Respects hidden arrows mode
 - **Hide all** — hides the entire UI, arrows, shading, and pauses auto-play. Press keybind again to restore everything
 - **Keybinds** — click the key badge next to any toggle to assign a hotkey. Supports single keys, modifier combos (Ctrl+G), and modifier-only binds (just Ctrl). Live preview while recording, click away or Escape to cancel. No duplicates allowed
@@ -56,11 +55,10 @@ Both versions use Stockfish 19 WASM (lite single-threaded build) loaded from unp
 | Arrow | Color | Meaning |
 |-------|-------|---------|
 | Green | #96bc4b | Your best move |
-| Cyan | #1bada6 | Brilliant move (150+ cp gap over 2nd best) |
 | Red | #e04040 | Opponent's best reply |
 
 ## Notes
 
 - Works on chess.com only (relies on chess.com DOM structure)
 - The script runs entirely client-side — no data sent anywhere
-- All arrows can be shown simultaneously (different SVG layers)
+- Both arrow types can be shown simultaneously (different SVG layers)
