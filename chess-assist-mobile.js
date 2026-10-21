@@ -628,7 +628,16 @@
     if (!inActiveGame()) { btn.textContent = 'No Game'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 1500); return; }
     let fen = getFEN();
     if (!fen) { btn.textContent = 'No Game'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 1500); return; }
-    if (!isMyTurn()) fen = flipFEN(fen);
+    if (!isMyTurn() && !window.chessHelper.showOpponent) { btn.textContent = 'Not your turn'; thinkingEl.classList.remove('active'); setTimeout(() => btn.textContent = 'Analyze once', 1500); return; }
+    if (!isMyTurn()) {
+      const candidates = await queryLocal(fen, ENGINE_DEPTH);
+      const om = candidates.length ? candidates[0].move : null;
+      thinkingEl.classList.remove('active');
+      if (om) { drawOpponentArrow(om); btn.textContent = `Opp: ${om.toUpperCase()}`; }
+      else btn.textContent = 'Error';
+      setTimeout(() => btn.textContent = 'Analyze once', 2500);
+      return;
+    }
     const mv = await fetchRemote(fen);
     thinkingEl.classList.remove('active');
     if (mv) {
