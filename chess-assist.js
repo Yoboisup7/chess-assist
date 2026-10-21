@@ -439,7 +439,7 @@
     drawArrowSVG(b, move, '#e04040', '0.8', 'ch-opponent-svg', 1002);
   }
 
-  let processing = false, lastFen = '', lastMovedFen = '', drawing = false;
+  let processing = false, lastFen = '', lastMovedFen = '', drawing = false, lastOppFen = '', lastOppMove = null;
   async function tick() {
     if ((!window.chessHelper.autoPlay && !window.chessHelper.showArrow && !window.chessHelper.hiddenArrow && !window.chessHelper.showOpponent) || processing) return;
     if (!inActiveGame()) return;
@@ -450,16 +450,20 @@
       clearShading();
       const fen = getFEN();
       if (fen && window.chessHelper.showOpponent) {
+        if (fen === lastOppFen && lastOppMove) { drawOpponentArrow(lastOppMove); return; }
         processing = true;
         try {
           const candidates = await queryLocal(fen, ENGINE_DEPTH);
           const om = candidates.length ? candidates[0].move : null;
+          lastOppFen = fen;
+          lastOppMove = om;
           if (om) drawOpponentArrow(om);
           else clearOpponentArrow();
         } catch {} finally { processing = false; }
       } else clearOpponentArrow();
       return;
     }
+    lastOppFen = ''; lastOppMove = null;
     const fen = getFEN(); if (!fen) return;
     if (fen === lastFen) return;
     if (window.chessHelper.autoPlay && fen === lastMovedFen) return;
