@@ -20,6 +20,8 @@
     #ch-eval-pct-bot { bottom:6px; color:#000; }
     .ch-header { display:flex; justify-content:space-between; align-items:center; cursor:grab; user-select:none; }
     .ch-title { font-size:16px; font-weight:700; color:#fff; }
+    .ch-close { width:24px; height:24px; border-radius:50%; border:none; background:rgba(255,255,255,0.08); color:#fff; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.2s; }
+    .ch-close:hover { background:rgba(255,255,255,0.18); }
     .ch-row { display:flex; justify-content:space-between; align-items:center; gap:6px; }
     .ch-label { font-size:13px; color:#fff; font-weight:500; flex:1; }
     .ch-switch { position:relative; width:44px; height:24px; flex-shrink:0; }
@@ -543,7 +545,7 @@
   bubble.innerHTML = `<img src="https://images.chesscomfiles.com/chess-themes/pieces/neo/150/wn.png" draggable="false">`;
   const panel = document.createElement('div'); panel.id = 'chess-helper-panel';
   panel.innerHTML = `
-    <div class="ch-header"><div class="ch-title">Chess Assist</div></div>
+    <div class="ch-header"><div class="ch-title">Chess Assist</div><button class="ch-close" id="ch-close">&times;</button></div>
     <div class="ch-thinking" id="ch-thinking">Thinking...</div>
     <div>
       <div class="ch-depth-row"><span class="ch-depth-label">Depth</span><span class="ch-info" data-tip="depth">i</span><input type="range" class="ch-range" id="ch-depth" min="1" max="24" value="16"><span class="ch-depth-val" id="ch-depth-val">16</span></div>
@@ -598,6 +600,7 @@
   });
 
   const thinkingEl = panel.querySelector('#ch-thinking');
+  panel.querySelector('#ch-close').onclick = () => wrap.classList.remove('visible');
 
   let ox = window.innerWidth - 80, oy = 80, dragging = false, dragMoved = false, sx = 0, sy = 0;
   function setPos() { bubble.style.transform = `translate3d(${ox}px,${oy}px,0)`; }
@@ -617,7 +620,7 @@
   document.onmouseup = document.ontouchend = () => {
     if (!dragging) return;
     dragging = false;
-    if (!dragMoved) wrap.classList.toggle('visible');
+    if (!dragMoved) { wrap.classList.toggle('visible'); positionPanel(); }
   };
 
   let panelX = -1, panelY = -1, panelDragging = false, panelDragMoved = false, panelSX = 0, panelSY = 0;
