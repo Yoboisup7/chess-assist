@@ -605,23 +605,30 @@
   let ox = window.innerWidth - 80, oy = 80, dragging = false, dragMoved = false, sx = 0, sy = 0;
   function setPos() { bubble.style.transform = `translate3d(${ox}px,${oy}px,0)`; }
   setPos();
-  bubble.onmousedown = bubble.ontouchstart = (e) => {
+  function bubbleDown(e) {
+    e.preventDefault();
     dragging = true; dragMoved = false;
     const p = e.touches ? e.touches[0] : e;
     sx = p.clientX - ox; sy = p.clientY - oy;
-  };
-  document.onmousemove = document.ontouchmove = (e) => {
+  }
+  bubble.addEventListener('mousedown', bubbleDown);
+  bubble.addEventListener('touchstart', bubbleDown, { passive: false });
+  function bubbleMove(e) {
     if (!dragging) return; dragMoved = true;
     const p = e.touches ? e.touches[0] : e;
     ox = Math.max(0, Math.min(p.clientX - sx, innerWidth - 52));
     oy = Math.max(0, Math.min(p.clientY - sy, innerHeight - 52));
     setPos();
-  };
-  document.onmouseup = document.ontouchend = () => {
+  }
+  document.addEventListener('mousemove', bubbleMove);
+  document.addEventListener('touchmove', bubbleMove);
+  function bubbleUp() {
     if (!dragging) return;
     dragging = false;
     if (!dragMoved) { wrap.classList.toggle('visible'); positionPanel(); }
-  };
+  }
+  document.addEventListener('mouseup', bubbleUp);
+  document.addEventListener('touchend', bubbleUp);
 
   let panelX = -1, panelY = -1, panelDragging = false, panelDragMoved = false, panelSX = 0, panelSY = 0;
 
@@ -663,8 +670,6 @@
   document.addEventListener('mouseup', () => { panelDragging = false; });
   document.addEventListener('touchend', () => { panelDragging = false; });
 
-  const _obs2 = new MutationObserver(() => { if (panel.classList.contains('visible')) positionPanel(); });
-  _obs2.observe(panel, { attributes: true, attributeFilter: ['class'] });
 
   panel.querySelector('#ch-depth').oninput = (e) => {
     ENGINE_DEPTH = parseInt(e.target.value);
