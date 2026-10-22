@@ -562,7 +562,7 @@
       <div class="ch-tooltip" id="tip-auto">Automatically plays the best move for you when it's your turn. Uses anti-repetition to avoid repeating the same moves.</div>
     </div>
     <div>
-      <div class="ch-row"><span class="ch-label">Move delay</span><span class="ch-info" data-tip="delay">i</span><label class="ch-switch"><input type="checkbox" id="ch-delay-toggle"><span class="ch-slider"></span></label></div>
+      <div class="ch-row"><span class="ch-label">Move delay</span><span class="ch-info" data-tip="delay">i</span><span class="ch-keybind" data-bind="delay">Press keys...</span><label class="ch-switch"><input type="checkbox" id="ch-delay-toggle"><span class="ch-slider"></span></label></div>
       <div class="ch-tooltip" id="tip-delay">Random delay before auto-play makes a move, so it looks like a human thinking. Set a min and max range in seconds. Off by default — the engine moves as soon as it finishes calculating.</div>
       <div id="ch-delay-sliders" style="display:none">
         <div class="ch-depth-row" style="margin-top:6px"><span class="ch-depth-label">Min</span><input type="range" class="ch-range" id="ch-delay-min" min="0" max="15" value="1" step="0.5"><span class="ch-depth-val" id="ch-delay-min-val">1s</span></div>
@@ -570,11 +570,11 @@
       </div>
     </div>
     <div>
-      <div class="ch-row"><span class="ch-label">Opponent's best</span><span class="ch-info" data-tip="opponent">i</span><label class="ch-switch"><input type="checkbox" id="ch-opponent"><span class="ch-slider"></span></label></div>
+      <div class="ch-row"><span class="ch-label">Opponent's best</span><span class="ch-info" data-tip="opponent">i</span><span class="ch-keybind" data-bind="opponent">Press keys...</span><label class="ch-switch"><input type="checkbox" id="ch-opponent"><span class="ch-slider"></span></label></div>
       <div class="ch-tooltip" id="tip-opponent">Shows a red arrow for the opponent's best reply to the current position. Helps you anticipate what they'll play next.</div>
     </div>
     <div>
-      <div class="ch-row"><span class="ch-label">Win percent</span><span class="ch-info" data-tip="eval">i</span><label class="ch-switch"><input type="checkbox" id="ch-eval"><span class="ch-slider"></span></label></div>
+      <div class="ch-row"><span class="ch-label">Win percent</span><span class="ch-info" data-tip="eval">i</span><span class="ch-keybind" data-bind="eval">Press keys...</span><label class="ch-switch"><input type="checkbox" id="ch-eval"><span class="ch-slider"></span></label></div>
       <div class="ch-tooltip" id="tip-eval">Shows a live win probability bar next to the panel. Updates every position using Stockfish's centipawn evaluation.</div>
     </div>
     <button class="ch-btn ch-btn-primary" id="ch-analyze">Analyze once</button>
@@ -758,7 +758,7 @@
     }
   }
 
-  const binds = { hide: null, arrow: null, hidden: null, auto: null };
+  const binds = { hide: null, arrow: null, hidden: null, auto: null, delay: null, opponent: null, eval: null };
   let recordingBind = null;
   let recordingHeldMods = null;
 
@@ -850,7 +850,9 @@
   });
 
   function toggleBind(name) {
-    const cb = panel.querySelector(name === 'arrow' ? '#ch-arrow' : name === 'hidden' ? '#ch-hidden' : '#ch-auto');
+    const map = { arrow: '#ch-arrow', hidden: '#ch-hidden', auto: '#ch-auto', delay: '#ch-delay-toggle', opponent: '#ch-opponent', eval: '#ch-eval' };
+    const cb = panel.querySelector(map[name]);
+    if (!cb) return;
     cb.checked = !cb.checked;
     cb.dispatchEvent(new Event('change'));
   }
@@ -891,6 +893,9 @@
     if (matchesKey(e, binds.arrow)) { e.preventDefault(); toggleBind('arrow'); return; }
     if (matchesKey(e, binds.hidden)) { e.preventDefault(); toggleBind('hidden'); return; }
     if (matchesKey(e, binds.auto)) { e.preventDefault(); toggleBind('auto'); return; }
+    if (matchesKey(e, binds.delay)) { e.preventDefault(); toggleBind('delay'); return; }
+    if (matchesKey(e, binds.opponent)) { e.preventDefault(); toggleBind('opponent'); return; }
+    if (matchesKey(e, binds.eval)) { e.preventDefault(); toggleBind('eval'); return; }
   });
 
   document.addEventListener('keyup', (e) => {
@@ -903,7 +908,7 @@
     if (e.key !== soloModKey) { soloModKey = null; return; }
     if (Date.now() - soloModTime > 1000) { soloModKey = null; return; }
     soloModKey = null;
-    for (const name of ['hide', 'arrow', 'hidden', 'auto']) {
+    for (const name of ['hide', 'arrow', 'hidden', 'auto', 'delay', 'opponent', 'eval']) {
       if (matchModOnly(e, binds[name])) { e.preventDefault(); fireModBind(name); return; }
     }
   });
