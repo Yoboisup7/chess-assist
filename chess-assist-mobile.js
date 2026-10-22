@@ -459,12 +459,12 @@
     const myTurn = isMyTurn();
     if (!myTurn) {
       lastFen = '';
+      processing = true;
       clearArrows();
       clearShading();
       const fen = getFEN();
       if (fen && window.chessHelper.showOpponent) {
-        if (fen === lastOppFen && lastOppMove) { drawOpponentArrow(lastOppMove); return; }
-        processing = true;
+        if (fen === lastOppFen && lastOppMove) { drawOpponentArrow(lastOppMove); processing = false; return; }
         try {
           const candidates = await queryLocal(fen, ENGINE_DEPTH);
           const om = candidates.length ? candidates[0].move : null;
@@ -476,7 +476,7 @@
           if (om) drawOpponentArrow(om);
           else clearOpponentArrow();
         } catch {} finally { processing = false; }
-      } else clearOpponentArrow();
+      } else { clearOpponentArrow(); processing = false; }
       return;
     }
     lastOppFen = ''; lastOppMove = null;
@@ -584,7 +584,7 @@
       <div class="ch-tooltip" id="tip-opponent">Shows a red arrow for the opponent's best reply to the current position. Helps you anticipate what they'll play next.</div>
     </div>
     <div>
-      <div class="ch-row"><span class="ch-label">Win %</span><span class="ch-info" data-tip="eval">i</span><label class="ch-switch"><input type="checkbox" id="ch-eval"><span class="ch-slider"></span></label></div>
+      <div class="ch-row"><span class="ch-label">Win percent</span><span class="ch-info" data-tip="eval">i</span><label class="ch-switch"><input type="checkbox" id="ch-eval"><span class="ch-slider"></span></label></div>
       <div class="ch-tooltip" id="tip-eval">Shows a live win probability bar next to the panel. Updates every position using Stockfish's centipawn evaluation.</div>
     </div>
     <button class="ch-btn ch-btn-primary" id="ch-analyze">Analyze once</button>
