@@ -13,9 +13,9 @@
     #chess-helper-wrap { position:fixed; display:flex; align-items:stretch; gap:8px; opacity:0; transform:scale(0.9); transition:opacity .25s, transform .3s; pointer-events:none; }
     #chess-helper-wrap.visible { opacity:1; transform:scale(1); pointer-events:auto; }
     #chess-helper-panel { width:280px; background:rgba(18,18,20,0.85); backdrop-filter:blur(24px); border:1px solid var(--ch-border); border-radius:var(--ch-radius); padding:20px; display:flex; flex-direction:column; gap:14px; box-shadow:0 20px 60px #0009; pointer-events:auto; }
-    #ch-eval-bar { width:28px; border-radius:14px; overflow:hidden; background:#000; border:1px solid var(--ch-border); box-shadow:0 10px 40px -10px #0008; position:relative; pointer-events:auto; min-height:200px; }
-    #ch-eval-white { position:absolute; bottom:0; left:0; right:0; background:#fff; transition:height .6s ease; height:50%; }
-    #ch-eval-pct { position:absolute; width:100%; text-align:center; font-size:10px; font-weight:700; font-family:var(--ch-font); z-index:1; left:0; }
+    #ch-eval-bar { width:32px; border-radius:14px; overflow:visible; background:#000; border:1px solid var(--ch-border); box-shadow:0 10px 40px -10px #0008; position:relative; pointer-events:auto; min-height:200px; }
+    #ch-eval-white { position:absolute; bottom:0; left:0; right:0; background:#fff; transition:height .6s ease; height:50%; border-radius:0 0 13px 13px; }
+    .ch-eval-pct { position:absolute; width:100%; text-align:center; font-size:10px; font-weight:700; font-family:var(--ch-font); z-index:2; left:0; }
     #ch-eval-pct-top { top:6px; color:#fff; }
     #ch-eval-pct-bot { bottom:6px; color:#000; }
     .ch-header { display:flex; justify-content:space-between; align-items:center; cursor:grab; user-select:none; }
